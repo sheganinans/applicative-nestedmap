@@ -16,6 +16,7 @@ module Data.Nested.Tree
        , toList
          -- * Utils
        , unionTree
+       , apTree
        , unionTreeWithKey
        , unionTreeWithKey'
        , unionTreeWith
@@ -43,6 +44,7 @@ import Data.Nested.Internal ( Tree
                             , lookupTree
                             , memberTree
                             , unionTree
+                            , apTree
                             , unionTreeWithKey
                             , unionTreeWithKey'
                             , unionTreeWith

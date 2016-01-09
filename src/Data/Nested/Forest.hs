@@ -16,6 +16,7 @@ module Data.Nested.Forest
        , toList
          -- * Utils
        , unionForest
+       , apForest
        , unionForestWithKey
        , unionForestWith
        , foldrForestWithAncestors
@@ -43,6 +44,7 @@ import Data.Nested.Internal ( Forest
                             , lookupForest
                             , memberForest
                             , unionForest
+                            , apForest
                             , unionForestWithKey
                             , unionForestWith
                             , foldrForestWithAncestors

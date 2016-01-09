@@ -1,15 +1,15 @@
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE GADTs, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE GADTs, NoImplicitPrelude, UnicodeSyntax, FlexibleContexts #-}
 
 module Data.Nested.Internal
        ( -- * Tree and Forest types
-         Tree, Forest
+         Tree, Forest (..)
          -- * Query
        , fruit, forest, trees, treeAssocs
        , nullTree, nullForest
        , sizeTree, sizeForest
        , lookupTree, lookupForest
-       , memberTree, memberForest                     
+       , memberTree, memberForest
          -- * Construction
        , emptyTree, emptyForest
        , singletonTree, singletonForest
@@ -19,6 +19,7 @@ module Data.Nested.Internal
        , fromListTree, fromListForest
          -- * Utils
        , unionTree, unionForest
+       , apTree, apForest
        , unionTreeWithKey, unionForestWithKey
        , unionTreeWithKey'
        , unionTreeWith, unionForestWith
@@ -48,10 +49,11 @@ import Data.Monoid.Unicode ((⊕))
 import Text.Show (Show)
 import Control.Arrow ((&&&))
 import Control.Monad (MonadPlus, (>>=), join, return, mplus)
-import Control.Applicative (Applicative)
+import Control.Applicative (Applicative, (<*>))
 import Control.Applicative.Unicode ((⊛))
 import Data.Map (Map)
 import qualified Data.Map as M
+import Unsafe.Coerce
 
 data Tree κ α where
   Tree ∷ { fruit  ∷ α
@@ -86,7 +88,7 @@ instance Foldable (Tree κ) where
   foldr f z (Tree v ts) = f v (foldr f z ts)
 
 instance Traversable (Forest κ) where
-  traverse f = (Forest <$>) <$> traverse (traverse f) ∘ unForest 
+  traverse f = (Forest <$>) <$> traverse (traverse f) ∘ unForest
 
 instance Traversable (Tree κ) where
   traverse f (Tree v ts) = Tree <$> f v ⊛ traverse f ts
@@ -119,7 +121,7 @@ lookupTree ∷ (Traversable φ, Ord κ) ⇒ Tree κ α → φ κ → (α, φ (Ma
 lookupTree t = (fruit t,) ∘ lookupForest (forest t)
 
 memberTree ∷ (Traversable φ, Ord κ) ⇒ Tree κ α → φ κ → φ Bool
-memberTree t = (isJust <$>) ∘ snd ∘ lookupTree t 
+memberTree t = (isJust <$>) ∘ snd ∘ lookupTree t
 
 memberForest ∷ (Traversable φ, Ord κ) ⇒ Forest κ α → φ κ → φ Bool
 memberForest f = (isJust <$>) ∘ lookupForest f
@@ -156,7 +158,7 @@ toListForest = fmap L.reverse ∘ foldrForestWithAncestorsAndLeafMarker leafCons
 
 toListTree ∷ Tree κ α → (α, [[(κ, α)]])
 toListTree t = (fruit t, toListForest (forest t))
-               
+
 unionForest ∷ Ord κ ⇒ Forest κ α → Forest κ α → Forest κ α
 unionForest (Forest f1) (Forest f2) = Forest $ M.unionWith unionTree f1 f2
 
@@ -179,6 +181,26 @@ unionTreeWith ∷ Ord κ ⇒ (α → α → α) → Tree κ α → Tree κ α �
 unionTreeWith f = unionTreeWithKey f (const f)
 
 
+apTree :: (Applicative (Map κ), Ord κ) ⇒ Tree κ (α → β) → Tree κ α → Tree κ β
+apTree (Tree _ af) (Tree bx bf) = unsafeCoerce ∘ Tree bx $ apForest (unsafeCoerce af) bf
+{-# NOINLINE apTree #-}
+
+apForest ∷ (Applicative (Map κ), Ord κ) ⇒ Forest κ (α → β) → Forest κ α → Forest κ β
+apForest (Forest a) (Forest b) = Forest $ (fmap apTree a) <*> b
+
+mapPure = const M.empty
+
+funMap :: Ord k => (a → β) → Map k a → Map k (a → β) ; funMap f = M.map (const f)
+
+funcId :: Ord k => Map k a → Map k (a → a) ; funcId = funMap id
+
+funcAp :: Ord k => Map k (a → β) → Map k a → Map k β
+funcAp = M.mergeWithKey (\_ f a → Just $ f a) mapPure mapPure
+
+funcFullAp :: Ord k => Map k (a → β) → Map k a → Map k β ; funcFullAp f a = funcAp (idUnion (funcId a) f) a
+
+idUnion :: Ord k => Map k (a → a) → Map k (a → β) → Map k (a → β) ; idUnion = M.union ∘ unsafeCoerce
+{-# NOINLINE idUnion #-}
 
 
 foldrForestWithAncestors ∷ ([(κ, α)] → β → β) → β → Forest κ α → β
@@ -203,8 +225,3 @@ foldrTreeWithAncestorsAndLeafMarker1 ∷ (Bool → [(κ, α)] → β → β) →
 foldrTreeWithAncestorsAndLeafMarker1 f kvs k t z = f isLeaf as (foldrForestWithAncestorsAndLeafMarker1 f as z (forest t))
   where as = (k, fruit t):kvs
         isLeaf = nullTree t
-
-        
-
-
-
