@@ -181,12 +181,24 @@ unionTreeWithKey g f t1 t2 = Tree (g (fruit t1) (fruit t2)) (unionForestWithKey 
 unionTreeWith ∷ Ord κ ⇒ (α → α → α) → Tree κ α → Tree κ α → Tree κ α
 unionTreeWith f = unionTreeWithKey f (const f)
 
-instance (Ord a, Eq a) => EndoApplicative (Map a) where ; pureE = const M.empty ; (<#>) = funcApFull
-instance (Ord κ, EndoApplicative (Tree κ)) =>
- EndoApplicative (Forest κ) where pureE = const emptyForest ; (<#>) = apForest
-instance Ord a => EndoApplicative (Tree a) where pureE = emptyTree ; (<#>) = apTree
+class Functor f => EndoApplicative f where
+ pureE :: a -> f a
+ (<#>) :: f (a -> a) -> f a -> f a
 
-class Functor f => EndoApplicative f where pureE :: a -> f a ; (<#>) :: f (a -> a) -> f a -> f a
+instance (Ord a, Eq a) => EndoApplicative (Map a) where
+ pureE = const M.empty
+ (<#>) = funcApFull
+
+instance (Ord κ, EndoApplicative (Tree κ)) => EndoApplicative (Forest κ) where
+ pureE = const emptyForest
+ (<#>) = apForest
+
+instance Ord a => EndoApplicative (Tree a) where
+ pureE = emptyTree
+ (<#>) = apTree
+
+funcApFull :: Ord k => Map k (a -> a) -> Map k a -> Map k a
+funcApFull f a = funcAp (M.union (M.map (const id) a) f) a
 
 apTree :: (Ord κ) => Tree κ (a -> a) -> Tree κ a -> Tree κ a
 apTree (Tree ax af) (Tree bx bf) = Tree (ax bx) $ af <#> bf
@@ -194,13 +206,11 @@ apTree (Tree ax af) (Tree bx bf) = Tree (ax bx) $ af <#> bf
 apForest ∷ (Ord κ, EndoApplicative (Tree κ)) => Forest κ (a -> a) -> Forest κ a -> Forest κ a
 apForest (Forest a) (Forest b) = Forest $ M.foldrWithKey (\_ y z -> (y <#>) <$> z) b a
 
-mapPure = const M.empty
-
 funcAp :: Ord k => Map k (a -> a) -> Map k a -> Map k a
 funcAp = M.mergeWithKey (\_ f a -> Just $ f a) mapPure mapPure
 
-funcApFull :: Ord k => Map k (a -> a) -> Map k a -> Map k a
-funcApFull f a = funcAp (M.union (M.map (const id) a) f) a
+mapPure = const M.empty
+
 
 foldrForestWithAncestors ∷ ([(κ, α)] → β → β) → β → Forest κ α → β
 foldrForestWithAncestors f = foldrForestWithAncestors1 f []
