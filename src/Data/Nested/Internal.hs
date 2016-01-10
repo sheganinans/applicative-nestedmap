@@ -198,7 +198,7 @@ instance Ord a => MonoApplicative (Tree a) where
  (<#>) = apTree
 
 funcApFull :: Ord k => Map k (a -> a) -> Map k a -> Map k a
-funcApFull f a = funcAp (M.union (M.map (const id) a) f) a
+funcApFull f a = funcAp (M.union f (M.map (const id) a)) a
 
 funcAp :: Ord k => Map k (a -> a) -> Map k a -> Map k a
 funcAp = M.mergeWithKey (\_ f a -> Just $ f a) mapPure mapPure
