@@ -200,14 +200,14 @@ instance Ord a => EndoApplicative (Tree a) where
 funcApFull :: Ord k => Map k (a -> a) -> Map k a -> Map k a
 funcApFull f a = funcAp (M.union (M.map (const id) a) f) a
 
+funcAp :: Ord k => Map k (a -> a) -> Map k a -> Map k a
+funcAp = M.mergeWithKey (\_ f a -> Just $ f a) mapPure mapPure
+
 apTree :: (Ord κ) => Tree κ (a -> a) -> Tree κ a -> Tree κ a
 apTree (Tree ax af) (Tree bx bf) = Tree (ax bx) $ af <#> bf
 
 apForest ∷ (Ord κ, EndoApplicative (Tree κ)) => Forest κ (a -> a) -> Forest κ a -> Forest κ a
 apForest (Forest a) (Forest b) = Forest $ M.foldrWithKey (\_ y z -> (y <#>) <$> z) b a
-
-funcAp :: Ord k => Map k (a -> a) -> Map k a -> Map k a
-funcAp = M.mergeWithKey (\_ f a -> Just $ f a) mapPure mapPure
 
 mapPure = const M.empty
 
