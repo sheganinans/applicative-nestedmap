@@ -182,19 +182,19 @@ unionTreeWith ∷ Ord κ ⇒ (α → α → α) → Tree κ α → Tree κ α �
 unionTreeWith f = unionTreeWithKey f (const f)
 
 class Functor f => MonoApplicative f where
- pureE :: a -> f a
+ pureM :: a -> f a
  (<#>) :: f (a -> a) -> f a -> f a
 
 instance (Ord a, Eq a) => MonoApplicative (Map a) where
- pureE = const M.empty
+ pureM = const M.empty
  (<#>) = funcApFull
 
 instance (Ord κ, MonoApplicative (Tree κ)) => MonoApplicative (Forest κ) where
- pureE = const emptyForest
+ pureM = const emptyForest
  (<#>) = apForest
 
 instance Ord a => MonoApplicative (Tree a) where
- pureE = emptyTree
+ pureM = emptyTree
  (<#>) = apTree
 
 funcApFull :: Ord k => Map k (a -> a) -> Map k a -> Map k a
