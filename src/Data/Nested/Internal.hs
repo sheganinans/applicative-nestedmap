@@ -4,7 +4,7 @@
 
 module Data.Nested.Internal
        ( -- * Tree and Forest types
-         Tree (..), Forest (..), EndoApplicative (..)
+         Tree (..), Forest (..), MonoApplicative (..)
          -- * Query
        , fruit, forest, trees, treeAssocs
        , nullTree, nullForest
@@ -181,19 +181,19 @@ unionTreeWithKey g f t1 t2 = Tree (g (fruit t1) (fruit t2)) (unionForestWithKey 
 unionTreeWith ∷ Ord κ ⇒ (α → α → α) → Tree κ α → Tree κ α → Tree κ α
 unionTreeWith f = unionTreeWithKey f (const f)
 
-class Functor f => EndoApplicative f where
+class Functor f => MonoApplicative f where
  pureE :: a -> f a
  (<#>) :: f (a -> a) -> f a -> f a
 
-instance (Ord a, Eq a) => EndoApplicative (Map a) where
+instance (Ord a, Eq a) => MonoApplicative (Map a) where
  pureE = const M.empty
  (<#>) = funcApFull
 
-instance (Ord κ, EndoApplicative (Tree κ)) => EndoApplicative (Forest κ) where
+instance (Ord κ, MonoApplicative (Tree κ)) => MonoApplicative (Forest κ) where
  pureE = const emptyForest
  (<#>) = apForest
 
-instance Ord a => EndoApplicative (Tree a) where
+instance Ord a => MonoApplicative (Tree a) where
  pureE = emptyTree
  (<#>) = apTree
 
@@ -206,7 +206,7 @@ funcAp = M.mergeWithKey (\_ f a -> Just $ f a) mapPure mapPure
 apTree :: (Ord κ) => Tree κ (a -> a) -> Tree κ a -> Tree κ a
 apTree (Tree ax af) (Tree bx bf) = Tree (ax bx) $ af <#> bf
 
-apForest ∷ (Ord κ, EndoApplicative (Tree κ)) => Forest κ (a -> a) -> Forest κ a -> Forest κ a
+apForest ∷ (Ord κ, MonoApplicative (Tree κ)) => Forest κ (a -> a) -> Forest κ a -> Forest κ a
 apForest (Forest a) (Forest b) = Forest $ M.foldrWithKey (\_ y z -> (y <#>) <$> z) b a
 
 mapPure = const M.empty
