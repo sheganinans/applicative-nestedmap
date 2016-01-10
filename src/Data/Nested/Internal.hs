@@ -1,9 +1,10 @@
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE GADTs, NoImplicitPrelude, UnicodeSyntax, FlexibleContexts #-}
+{-# LANGUAGE GADTs, NoImplicitPrelude, UnicodeSyntax, FlexibleContexts, InstanceSigs, UndecidableInstances
+ , AllowAmbiguousTypes#-}
 
 module Data.Nested.Internal
        ( -- * Tree and Forest types
-         Tree, Forest (..)
+         Tree (..), Forest (..), EndoApplicative (..)
          -- * Query
        , fruit, forest, trees, treeAssocs
        , nullTree, nullForest
@@ -19,10 +20,10 @@ module Data.Nested.Internal
        , fromListTree, fromListForest
          -- * Utils
        , unionTree, unionForest
-       , apTree, apForest
        , unionTreeWithKey, unionForestWithKey
        , unionTreeWithKey'
        , unionTreeWith, unionForestWith
+       , apTree, apForest
        , foldrForestWithAncestors
        , foldrForestWithAncestors1
        , foldrTreeWithAncestors1
@@ -33,7 +34,7 @@ module Data.Nested.Internal
 
 import qualified Data.List as L
 import Prelude.Unicode ((⊥))
-import Prelude (Num, (+))
+import Prelude (Num, (+), Eq (..), (.), undefined)
 import Data.Maybe (Maybe(Just, Nothing), maybe, isJust)
 import Data.Int (Int)
 import Data.Bool (Bool, otherwise)
@@ -49,7 +50,7 @@ import Data.Monoid.Unicode ((⊕))
 import Text.Show (Show)
 import Control.Arrow ((&&&))
 import Control.Monad (MonadPlus, (>>=), join, return, mplus)
-import Control.Applicative (Applicative, (<*>))
+import Control.Applicative (Applicative(..), (<*>))
 import Control.Applicative.Unicode ((⊛))
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -180,28 +181,26 @@ unionTreeWithKey g f t1 t2 = Tree (g (fruit t1) (fruit t2)) (unionForestWithKey 
 unionTreeWith ∷ Ord κ ⇒ (α → α → α) → Tree κ α → Tree κ α → Tree κ α
 unionTreeWith f = unionTreeWithKey f (const f)
 
+instance (Ord a, Eq a) => EndoApplicative (Map a) where ; pureE = const M.empty ; (<#>) = funcApFull
+instance (Ord κ, EndoApplicative (Tree κ)) =>
+ EndoApplicative (Forest κ) where pureE = const emptyForest ; (<#>) = apForest
+instance Ord a => EndoApplicative (Tree a) where pureE = emptyTree ; (<#>) = apTree
 
-apTree :: (Applicative (Map κ), Ord κ) ⇒ Tree κ (α → β) → Tree κ α → Tree κ β
-apTree (Tree _ af) (Tree bx bf) = unsafeCoerce ∘ Tree bx $ apForest (unsafeCoerce af) bf
-{-# NOINLINE apTree #-}
+class Functor f => EndoApplicative f where pureE :: a -> f a ; (<#>) :: f (a -> a) -> f a -> f a
 
-apForest ∷ (Applicative (Map κ), Ord κ) ⇒ Forest κ (α → β) → Forest κ α → Forest κ β
-apForest (Forest a) (Forest b) = Forest $ (fmap apTree a) <*> b
+apTree :: (Ord κ) => Tree κ (a -> a) -> Tree κ a -> Tree κ a
+apTree (Tree ax af) (Tree bx bf) = Tree (ax bx) $ af <#> bf
+
+apForest ∷ (Ord κ, EndoApplicative (Tree κ)) => Forest κ (a -> a) -> Forest κ a -> Forest κ a
+apForest (Forest a) (Forest b) = Forest $ M.foldrWithKey (\_ y z -> (y <#>) <$> z) b a
 
 mapPure = const M.empty
 
-funMap :: Ord k => (a → β) → Map k a → Map k (a → β) ; funMap f = M.map (const f)
+funcAp :: Ord k => Map k (a -> a) -> Map k a -> Map k a
+funcAp = M.mergeWithKey (\_ f a -> Just $ f a) mapPure mapPure
 
-funcId :: Ord k => Map k a → Map k (a → a) ; funcId = funMap id
-
-funcAp :: Ord k => Map k (a → β) → Map k a → Map k β
-funcAp = M.mergeWithKey (\_ f a → Just $ f a) mapPure mapPure
-
-funcFullAp :: Ord k => Map k (a → β) → Map k a → Map k β ; funcFullAp f a = funcAp (idUnion (funcId a) f) a
-
-idUnion :: Ord k => Map k (a → a) → Map k (a → β) → Map k (a → β) ; idUnion = M.union ∘ unsafeCoerce
-{-# NOINLINE idUnion #-}
-
+funcApFull :: Ord k => Map k (a -> a) -> Map k a -> Map k a
+funcApFull f a = funcAp (M.union (M.map (const id) a) f) a
 
 foldrForestWithAncestors ∷ ([(κ, α)] → β → β) → β → Forest κ α → β
 foldrForestWithAncestors f = foldrForestWithAncestors1 f []

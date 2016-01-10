@@ -2,7 +2,7 @@
 
 module Data.Nested.Forest
        ( -- * Forest type
-         Forest
+         Forest (..), EndoApplicative (..)
          -- * Query
        , trees, treeAssocs
        , null, size
@@ -16,9 +16,9 @@ module Data.Nested.Forest
        , toList
          -- * Utils
        , unionForest
-       , apForest
        , unionForestWithKey
        , unionForestWith
+       , apForest
        , foldrForestWithAncestors
        , foldrForestWithAncestors1
        , foldrForestWithAncestorsAndLeafMarker
@@ -32,7 +32,7 @@ import Data.Int (Int)
 import Data.Bool (Bool)
 import Data.Foldable (Foldable)
 import Data.Traversable (Traversable)
-import Data.Nested.Internal ( Forest
+import Data.Nested.Internal ( Forest (..), EndoApplicative (..)
                             , trees, treeAssocs
                             , nullForest
                             , sizeForest
@@ -44,9 +44,9 @@ import Data.Nested.Internal ( Forest
                             , lookupForest
                             , memberForest
                             , unionForest
-                            , apForest
                             , unionForestWithKey
                             , unionForestWith
+                            , apForest
                             , foldrForestWithAncestors
                             , foldrForestWithAncestors1
                             , foldrForestWithAncestorsAndLeafMarker

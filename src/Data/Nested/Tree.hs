@@ -2,7 +2,7 @@
 
 module Data.Nested.Tree
        ( -- * Tree type
-         Tree
+         Tree (..), EndoApplicative (..)
          -- * Query
        , fruit, forest
        , null, size
@@ -16,10 +16,10 @@ module Data.Nested.Tree
        , toList
          -- * Utils
        , unionTree
-       , apTree
        , unionTreeWithKey
        , unionTreeWithKey'
        , unionTreeWith
+       , apTree
        , foldrTreeWithAncestors1
        , foldrTreeWithAncestorsAndLeafMarker1
        ) where
@@ -33,7 +33,7 @@ import Data.Bool (Bool)
 import Data.Foldable (Foldable)
 import Data.Traversable (Traversable)
 
-import Data.Nested.Internal ( Tree
+import Data.Nested.Internal ( Tree (..), EndoApplicative (..)
                             , nullTree, fruit, forest
                             , sizeTree
                             , emptyTree
@@ -44,10 +44,10 @@ import Data.Nested.Internal ( Tree
                             , lookupTree
                             , memberTree
                             , unionTree
-                            , apTree
                             , unionTreeWithKey
                             , unionTreeWithKey'
                             , unionTreeWith
+                            , apTree
                             , foldrTreeWithAncestors1
                             , foldrTreeWithAncestorsAndLeafMarker1
                             )
