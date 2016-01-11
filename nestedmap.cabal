@@ -32,6 +32,7 @@ library
   build-depends:       base >=4.7 && <4.9
                      , containers >= 0.5.5.1
                      , base-unicode-symbols >= 0.2 && < 0.4
+                     , mono-traversable == 0.10.0.1
 
 test-suite spec
   type:                exitcode-stdio-1.0

@@ -4,7 +4,7 @@
 
 module Data.Nested.Internal
        ( -- * Tree and Forest types
-         Tree (..), Forest (..), MonoApplicative (..)
+         Tree (..), Forest (..)
          -- * Query
        , fruit, forest, trees, treeAssocs
        , nullTree, nullForest
@@ -54,7 +54,7 @@ import Control.Applicative (Applicative(..), (<*>))
 import Control.Applicative.Unicode ((⊛))
 import Data.Map (Map)
 import qualified Data.Map as M
-import Unsafe.Coerce
+import Data.MonoTraversable (MonoApplicative (..))
 
 data Tree κ α where
   Tree ∷ { fruit  ∷ α
@@ -181,21 +181,21 @@ unionTreeWithKey g f t1 t2 = Tree (g (fruit t1) (fruit t2)) (unionForestWithKey 
 unionTreeWith ∷ Ord κ ⇒ (α → α → α) → Tree κ α → Tree κ α → Tree κ α
 unionTreeWith f = unionTreeWithKey f (const f)
 
-class Functor f => MonoApplicative f where
- pureM :: a -> f a
- (<#>) :: f (a -> a) -> f a -> f a
+--class Functor f => MonoApplicative f where
+ --pureM :: a -> f a
+ --(<#>) :: f (a -> a) -> f a -> f a
 
-instance (Ord a, Eq a) => MonoApplicative (Map a) where
- pureM = const M.empty
- (<#>) = funcApFull
+--instance (Ord a, Eq a) => MonoApplicative (Map a) where
+ --pureM = const M.empty
+ --(<#>) = funcApFull
 
 instance (Ord κ, MonoApplicative (Tree κ)) => MonoApplicative (Forest κ) where
- pureM = const emptyForest
- (<#>) = apForest
+ opure = const emptyForest
+ oap = apForest
 
 instance Ord a => MonoApplicative (Tree a) where
- pureM = emptyTree
- (<#>) = apTree
+ opure = emptyTree
+ oap = apTree
 
 funcApFull :: Ord k => Map k (a -> a) -> Map k a -> Map k a
 funcApFull f a = funcAp (M.union f (M.map (const id) a)) a
@@ -204,10 +204,10 @@ funcAp :: Ord k => Map k (a -> a) -> Map k a -> Map k a
 funcAp = M.mergeWithKey (\_ f a -> Just $ f a) mapPure mapPure
 
 apTree :: (Ord κ) => Tree κ (a -> a) -> Tree κ a -> Tree κ a
-apTree (Tree ax af) (Tree bx bf) = Tree (ax bx) $ af <#> bf
+apTree (Tree ax af) (Tree bx bf) = Tree (ax bx) $ af `oap` bf
 
 apForest ∷ (Ord κ, MonoApplicative (Tree κ)) => Forest κ (a -> a) -> Forest κ a -> Forest κ a
-apForest (Forest a) (Forest b) = Forest $ M.foldrWithKey (\_ y z -> (y <#>) <$> z) b a
+apForest (Forest a) (Forest b) = Forest $ M.foldrWithKey (\_ y z -> (y `oap`) <$> z) b a
 
 mapPure = const M.empty
 

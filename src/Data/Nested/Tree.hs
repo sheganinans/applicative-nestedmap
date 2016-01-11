@@ -2,7 +2,7 @@
 
 module Data.Nested.Tree
        ( -- * Tree type
-         Tree (..), MonoApplicative (..)
+         Tree (..)
          -- * Query
        , fruit, forest
        , null, size
@@ -33,7 +33,7 @@ import Data.Bool (Bool)
 import Data.Foldable (Foldable)
 import Data.Traversable (Traversable)
 
-import Data.Nested.Internal ( Tree (..), MonoApplicative (..)
+import Data.Nested.Internal ( Tree (..)
                             , nullTree, fruit, forest
                             , sizeTree
                             , emptyTree
